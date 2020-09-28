@@ -18,18 +18,23 @@ coordinate = np.loadtxt('10.txt')
 velocity_all = np.zeros(coordinate.shape)
 force_all = np.zeros(coordinate.shape)
 energy_all = np.zeros((coordinate.shape[0],1))
+
+energy_record = np.empty((1,0))
+force_record = np.empty((coordinate.shape[0], coordinate.shape[1]))
+velocity_record = np.empty(force_all.shape)
 #%%
 # Set some basic property 
-total_time = 1000
+total_time = 1
 eps = 1
 rm = 1
-time_step = 0.5
+time_step = 0.002
 mass = 1
 
 #%%
 for one_step in np.arange(0, total_time, time_step):
-    # calculate the distance and energy
     for one_row_index in range(coordinate.shape[0]):
+        
+        # 计算这个粒子和其他粒子，包括他自己的距离
         one_row = coordinate[one_row_index, :]
         coordinate_diff_matrix = coordinate - one_row
     #    if one_row_index == 1:
@@ -39,52 +44,118 @@ for one_step in np.arange(0, total_time, time_step):
     #        print(coordinate_diff_matrix_square)
         coordinate_diff_matrix_square = coordinate_diff_matrix_square.sum(axis=1).reshape(coordinate_diff_matrix_square.sum(axis=1).shape[0],1)
         distance = np.sqrt(coordinate_diff_matrix_square)
-    #    if one_row_index == 0:
+    #    if one_row_index == 2:
     #       print(distance)
+        #%%
+    
+        # 计算这个粒子，和其他粒子 包括他自己的 LJ 势能
         energy = 4 * eps * ((1/(distance+0.0000000000001))**12-(1/(distance+0.000001))**6)
+        # 把和自己的能量变成0
         energy[np.argmax(np.abs(energy)),:]=0
-    #    if one_row_index == 0:
-    #        print(energy)
-        force = 4 * eps * (-12*(1/(distance+0.0000000000001))**(13)+6*(1/(distance+0.000001))**(7))
+        
+    #    if one_row_index == 2:
+    #        print(energy
+                  
+        energy = energy.sum(axis=0)        
+        energy_all[one_row_index] += energy
+        
+    #    print(energy_all)
+        #%%
+    
+        # 计算这个粒子和其他粒子之间的力，把和自己的力变成0
+        force = 48 * ((distance+0.0000000000001)**(-13)-0.5*(distance+0.0000000000001)**(-7))
         force[np.argmax(np.abs(force)),:]=0
+        
+    #    if one_row_index == 3:
+    #        print(force)
         
         # cos matrix
         
+        # 为了计算里的分量，首先计算矢量的方向余弦
+        cos_matrix = coordinate_diff_matrix / (distance+0.0000000000001)
+        
+        # 将力分解到三个方向
+        force = force * cos_matrix
+    #    if one_row_index == 2:
+    #        print()
+    #        print(force)
+    #        print()
+    #    # 计算其他分子对这个分子产生的力
+        force = force.sum(axis=0)
+    #    if one_row_index == 2:
+    #        print()
+    #        print(force)
+    #        print()
+        force_all[one_row_index] += force
+    #    print(force_all)
+        
+    #    if one_row_index == 2:
+    #        print()
+    #        print(force_all)W
+    #        print()
+        #%% 计算这个布局的能量
+    #    energy_all += energy
+    #    energy_all /= 2
+    #    print(energy_all)
+        # energy of the system at this configuration
+    total_energy = energy_all.sum()/2
+#    print(total_energy)
+    force_record = np.concatenate((force_record, force_all), axis=1)
+#    print(force_all)    
+    
+    energy_record = np.concatenate((energy_record, np.array([[total_energy]])), axis=1) 
+    #print(force_all)
+    #    print(energy_record)
+    #    plt.plot(energy_record)
+    #%%
+    # 上述代码主要是    更新了所有分子的受力，以及能量
+    # 下面的代码是：
+        #%%
+        ############### velocity verlet###########
+    # velocity verlet
+    
+    # 半个时间步以后的速度
+    velocity_all = velocity_all + force_all/mass*(time_step/2)
+    velocity_record = np.concatenate((velocity_record, velocity_all), axis=1)
+    #print(velocity_all)
+    # new coordinate
+    #%%
+    # 一个时间步后位置
+    coordinate = coordinate + velocity_all
+    #print(coordinate)
+    
+    #%%
+    ########new force #############
+    
+    #计算的新的力和能量
+    #%% 新的分之间的距离
+    for one_row_index in range(coordinate.shape[0]):
+        
+        # 计算这个粒子和其他粒子，包括他自己的距离
+        one_row = coordinate[one_row_index, :]
+        coordinate_diff_matrix = coordinate - one_row
+    #    if one_row_index == 1:
+    #        print(distance_matrix)
+        coordinate_diff_matrix_square = coordinate_diff_matrix*coordinate_diff_matrix
+    #    if one_row_index == 0:
+    #        print(coordinate_diff_matrix_square)
+        coordinate_diff_matrix_square = coordinate_diff_matrix_square.sum(axis=1).reshape(coordinate_diff_matrix_square.sum(axis=1).shape[0],1)
+        distance = np.sqrt(coordinate_diff_matrix_square)
+    #    if one_row_index == 2:
+    #       print(distance)
+    
+    
+    
+    #%% 计算新的力
+        
+        force = 48 * ((distance+0.0000000000001)**(-13)-0.5*(distance+0.0000000000001)**(-7))
+        force[np.argmax(np.abs(force)),:]=0
         cos_matrix = coordinate_diff_matrix / (distance+0.0000000000001)
         force = force * cos_matrix
-        force_all += force
-        energy_all += energy
+        force = force.sum(axis=0)
+        force_all[one_row_index] += force
     
-    # velocity verlet
-    velocity_all = velocity_all + force/mass*(time_step/2)
-    # new coordinate
-    coordinate = coordinate + velocity_all
-    print()
+    #%%
+    velocity_all = velocity_all + force_all/mass*(time_step/2)
     print(coordinate)
-    print()
     
-#    ########new force #############
-#    for one_row_index in range(coordinate.shape[0]):
-#        one_row = coordinate[one_row_index, :]
-#        coordinate_diff_matrix = coordinate - one_row
-#    #    if one_row_index == 1:
-#    #        print(distance_matrix)
-#        coordinate_diff_matrix_square = coordinate_diff_matrix*coordinate_diff_matrix
-#    #    if one_row_index == 0:
-#    #        print(coordinate_diff_matrix_square)
-#        coordinate_diff_matrix_square = coordinate_diff_matrix_square.sum(axis=1).reshape(coordinate_diff_matrix_square.sum(axis=1).shape[0],1)
-#        distance = np.sqrt(coordinate_diff_matrix_square)
-#    #    if one_row_index == 0:
-#    #       print(distance)
-#        energy = 4 * eps * ((1/(distance+0.0000000000001))**12-(1/(distance+0.000001))**6)
-#        energy[np.argmax(np.abs(energy)),:]=0
-#    #    if one_row_index == 0:
-#    #        print(energy)
-#        force = 4 * eps * (-12*(1/(distance+0.0000000000001))**(13)+6*(1/(distance+0.000001))**(7))
-#        force[np.argmax(np.abs(force)),:]=0
-#    ###############################
-#    print(111)
-#    velocity_all = velocity_all + force_all/mass * (time_step/2)
-#    
-#    energy_all = energy_all.sum()/2
-#    print(energy_all)

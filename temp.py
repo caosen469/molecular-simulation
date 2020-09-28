@@ -51,13 +51,14 @@ print(particles)
 #%%
 
 # Define some basic parameter
-total_time = 1000
+total_time = 1
 time_step = 0.002
 eps = 1
 rm = 1
 
 # first loop for time step
 for one_step in np.arange(0, total_time, time_step):
+    #%%
     # calculate the force and potential energy for all atoms
     count = 0
     
@@ -86,15 +87,16 @@ for one_step in np.arange(0, total_time, time_step):
             
             # uodate the one_particle force
             for componet in one_particle.force:
-                print('doing')
+                # print('doing')
                 one_particle.force[0] += Force_x
                 one_particle.force[1] += Force_y
                 one_particle.force[2] += Force_z
+        
+   #%%     
+        for each in particles:
+            part
                 
-                
-print(particles)
-for each in particles:
-    print(each)
+
 #%%
         
         
